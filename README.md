@@ -20,15 +20,10 @@ Dann im Browser öffnen:
 http://localhost:3000
 ```
 
-## QR-Code-Ziel setzen
+## QR-Code-Ziel
 
-Für den späteren Live-Betrieb kannst du die Ziel-URL so konfigurieren:
-
-```bash
-NEXT_PUBLIC_SITE_URL=https://deine-domain.de
-```
-
-Ohne diese Variable nutzt der Prototyp lokal `http://localhost:3000/ar`.
+Die Landingpage ermittelt die Domain automatisch aus dem Request und setzt den
+QR-Code auf `https://<deine-domain>/ar` (lokal: `http://localhost:3000/ar`).
 
 ## Nächste Ausbaupunkte
 

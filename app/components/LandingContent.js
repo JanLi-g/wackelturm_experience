@@ -1,14 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
 import Link from 'next/link';
 import QRCode from 'react-qr-code';
 
-export default function LandingContent() {
-  const arUrl = useMemo(() => {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    return `${baseUrl.replace(/\/$/, '')}/ar`;
-  }, []);
+export default function LandingContent({ arUrl }) {
 
   return (
     <main className="page-shell landing-shell">
@@ -50,8 +45,7 @@ export default function LandingContent() {
           </div>
           <p className="qr-url">{arUrl}</p>
           <p className="qr-hint">
-            Tipp: Setze später `NEXT_PUBLIC_SITE_URL`, damit der Code direkt auf deine
-            öffentliche Domain zeigt.
+            Der QR-Code nutzt automatisch deine aktuelle Deployment-Domain.
           </p>
         </aside>
       </section>
