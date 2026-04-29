@@ -78,18 +78,23 @@ export function buildPoiView(poi, userPosition, heading = 0, index = 0) {
 
   const distance = distanceMeters(userPosition, poi);
   const bearing = bearingDegrees(userPosition, poi);
-  const relativeAngle = normalizeRelativeAngle(bearing - heading);
+  // Correct orientation: some devices report heading sign inverted. Use
+  // heading - bearing so right turns map to rightward marker movement.
+  const relativeAngle = normalizeRelativeAngle(heading - bearing);
 
   const left = clamp(50 + (relativeAngle / 120) * 40, 8, 92);
   const distanceFactor = clamp(distance / 4000, 0, 1);
   const top = clamp(62 - distanceFactor * 28 + Math.abs(relativeAngle) / 24, 18, 78);
   const opacity = clamp(1 - distance / 12000, 0.45, 1);
-  const scale = clamp(1.1 - distance / 15000, 0.78, 1.08);
+  // Increase base scale so POIs are legible from a tower viewpoint.
+  const scale = clamp(1.6 - distance / 6000, 0.9, 1.8);
 
-  const z3d = clamp((4000 - distance) / 100, -400, 400);
-  const scaleZ = clamp(1 - distance / 12000, 0.5, 1);
+  // Depth tuning for tower/overhead perspective.
+  const z3d = clamp((2000 - distance) / 40, -400, 400);
+  const scaleZ = clamp(1 - distance / 10000, 0.7, 1.08);
   const zIndex = Math.round((1 - distanceFactor) * 1000) + index;
-  const blurAmount = clamp(distance / 5000, 0, 8);
+  const blurAmount = clamp(distance / 8000, 0, 6);
+  const baseMarkerPx = Math.round(clamp(56 * scale, 36, 96));
 
   return {
     ...poi,
@@ -97,6 +102,7 @@ export function buildPoiView(poi, userPosition, heading = 0, index = 0) {
     top,
     opacity,
     scale,
+    baseMarkerPx,
     z3d,
     scaleZ,
     zIndex,
