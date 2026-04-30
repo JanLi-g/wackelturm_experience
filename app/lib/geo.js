@@ -20,7 +20,23 @@ export function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isValidCoordinatePoint(point) {
+  return (
+    point != null &&
+    isFiniteNumber(point.latitude) &&
+    isFiniteNumber(point.longitude)
+  );
+}
+
 export function distanceMeters(from, to) {
+  if (!isValidCoordinatePoint(from) || !isValidCoordinatePoint(to)) {
+    return NaN;
+  }
+
   const lat1 = toRadians(from.latitude);
   const lat2 = toRadians(to.latitude);
   const deltaLat = toRadians(to.latitude - from.latitude);
@@ -35,6 +51,10 @@ export function distanceMeters(from, to) {
 }
 
 export function bearingDegrees(from, to) {
+  if (!isValidCoordinatePoint(from) || !isValidCoordinatePoint(to)) {
+    return NaN;
+  }
+
   const lat1 = toRadians(from.latitude);
   const lat2 = toRadians(to.latitude);
   const deltaLng = toRadians(to.longitude - from.longitude);
@@ -67,7 +87,7 @@ export function buildPoiView(poi, userPosition, heading = 0, index = 0, options 
     towerFallbackRadiusM = 120,
   } = options;
 
-  if (!userPosition) {
+  if (!isValidCoordinatePoint(poi) || !isValidCoordinatePoint(userPosition)) {
     return {
       ...poi,
       left: poi.screenX ?? 50,
@@ -87,6 +107,23 @@ export function buildPoiView(poi, userPosition, heading = 0, index = 0, options 
 
   const distance = distanceMeters(userPosition, poi);
   const bearing = bearingDegrees(userPosition, poi);
+  if (!Number.isFinite(distance) || !Number.isFinite(bearing)) {
+    return {
+      ...poi,
+      left: poi.screenX ?? 50,
+      top: poi.screenY ?? 50,
+      opacity: 1,
+      scale: 1,
+      distanceMeters: null,
+      bearingDegrees: null,
+      relativeAngleDegrees: null,
+      elevationAngleDegrees: null,
+      altitudeSource: 'none',
+      mode: 'fallback',
+      distanceLabel: 'Testposition',
+      markerRank: index,
+    };
+  }
   // Correct orientation: some devices report heading sign inverted. Use
   // heading - bearing so right turns map to rightward marker movement.
   const relativeAngle = normalizeRelativeAngle(heading - bearing);

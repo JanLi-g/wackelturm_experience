@@ -446,6 +446,49 @@ h1 {
   margin: 12px 0 0;
 }
 
+.rotate-hint {
+  width: min(1100px, 100%);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  animation: rotateHintPulse 1.6s ease-in-out infinite;
+}
+
+.rotate-hint-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(37, 99, 235, 0.92);
+  color: white;
+  flex: 0 0 auto;
+}
+
+.rotate-hint-text {
+  text-align: left;
+}
+
+@keyframes rotateHintPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
 .poi-overlay {
   position: absolute;
   inset: 0;
@@ -701,6 +744,66 @@ h1 {
 
   .mini-map-frame {
     min-height: 280px;
+  }
+}
+
+@media (orientation: landscape) {
+  html,
+  body {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .page-shell {
+    padding: 0;
+    gap: 0;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .ar-page {
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .top-bar,
+  .hero-copy,
+  .rotate-hint,
+  .poi-detail-panel,
+  .info-grid {
+    display: none;
+  }
+
+  .camera-stage {
+    width: 100vw;
+    min-height: 100dvh;
+  }
+
+  .camera-frame {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .camera-status-badge {
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: calc(env(safe-area-inset-left, 0px) + 12px);
+  }
+
+  .camera-zoom-controls {
+    left: calc(env(safe-area-inset-left, 0px) + 12px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+
+  .ar-debug-panel {
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    bottom: auto;
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+    left: auto;
+    width: min(320px, calc(100vw - 24px));
   }
 }
 

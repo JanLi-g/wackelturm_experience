@@ -32,6 +32,8 @@ export default function ArPage() {
   const [rawHeading, setRawHeading] = useState(0);
   const [headingState, setHeadingState] = useState('idle');
   const [compassActive, setCompassActive] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(true);
+  const [rotateHintDismissed, setRotateHintDismissed] = useState(false);
 
   const selectedPoi = useMemo(
     () => pois.find((poi) => poi.id === selectedPoiId) ?? pois[0],
@@ -108,6 +110,25 @@ export default function ArPage() {
         navigator.geolocation.clearWatch(locationWatchRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia('(orientation: portrait)');
+    const syncOrientation = () => setIsPortrait(mediaQuery.matches);
+
+    syncOrientation();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncOrientation);
+      return () => mediaQuery.removeEventListener('change', syncOrientation);
+    }
+
+    mediaQuery.addListener(syncOrientation);
+    return () => mediaQuery.removeListener(syncOrientation);
   }, []);
 
   function requestLocation() {
@@ -193,6 +214,18 @@ export default function ArPage() {
         Dies ist der erste mobile Prototyp: Kamera im Browser, Test-POIs mit
         Info-Icons und ein leichtes Overlay für spätere Geo-AR-Logik.
       </p>
+
+      {isPortrait && !rotateHintDismissed ? (
+        <button
+          type="button"
+          className="rotate-hint"
+          onClick={() => setRotateHintDismissed(true)}
+          aria-label="Hinweis schließen"
+        >
+          <span className="rotate-hint-icon" aria-hidden="true">↻</span>
+          <span className="rotate-hint-text">Smartphone drehen für die AR-Ansicht</span>
+        </button>
+      ) : null}
 
       <CameraStage>
         <Ar3DOverlay

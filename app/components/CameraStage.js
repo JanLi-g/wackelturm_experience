@@ -13,6 +13,7 @@ function clamp(value, min, max) {
 export default function CameraStage({ children }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const zoomSurfaceRef = useRef(null);
   const pointersRef = useRef(new Map());
   const pinchRef = useRef(null);
   const [cameraStatus, setCameraStatus] = useState('idle');
@@ -114,6 +115,10 @@ export default function CameraStage({ children }) {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      streamRef.current = null;
     };
   }, []);
 
@@ -167,6 +172,19 @@ export default function CameraStage({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    const surface = zoomSurfaceRef.current;
+    if (!surface) {
+      return undefined;
+    }
+
+    surface.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      surface.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
+
   return (
     <section className="camera-stage" aria-label="Kameraansicht mit AR-Overlay">
       <div className="camera-frame">
@@ -189,9 +207,9 @@ export default function CameraStage({ children }) {
         </div>
 
         <div
+          ref={zoomSurfaceRef}
           className="camera-zoom-surface"
           data-camera-zoom-allowed="true"
-          onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={clearPointer}
