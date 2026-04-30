@@ -208,39 +208,39 @@ export default function ArPage() {
           <p>Heading raw/smooth: {Math.round(rawHeading)}° / {Math.round(heading)}°</p>
           <p>Alt-Quelle: {selectedPoiView?.altitudeSource ?? 'none'}</p>
         </aside>
-
-        <aside className="poi-detail-panel">
-          <p className="poi-detail-kicker">Ausgewählte Sehenswürdigkeit</p>
-          <h2>{selectedPoi?.name}</h2>
-          <p>{selectedPoi?.description}</p>
-
-          <div className="poi-meta">
-            <span>Lat: {selectedPoi?.latitude}</span>
-            <span>Lng: {selectedPoi?.longitude}</span>
-            {selectedPoiView?.distanceMeters != null ? (
-              <span>Entfernung: {formatDistanceMeters(selectedPoiView.distanceMeters)}</span>
-            ) : null}
-            {selectedPoiView?.bearingDegrees != null ? (
-              <span>Bearing: {Math.round(selectedPoiView.bearingDegrees)}°</span>
-            ) : null}
-            {selectedPoiView?.elevationAngleDegrees != null ? (
-              <span>Elevation: {selectedPoiView.elevationAngleDegrees.toFixed(1)}°</span>
-            ) : null}
-          </div>
-
-          {geoPosition ? (
-            <p className="geo-readout">
-              Dein Standort: {geoPosition.latitude.toFixed(5)}, {geoPosition.longitude.toFixed(5)}
-            </p>
-          ) : (
-            <p className="geo-readout">Standortdaten werden später für echte Geo-AR genutzt.</p>
-          )}
-
-          <p className="geo-readout">
-            Kompass: {headingState === 'ready' ? `${Math.round(heading)}°` : headingState} · GPS: {geoState}
-          </p>
-        </aside>
       </CameraStage>
+
+      <aside className="poi-detail-panel">
+        <p className="poi-detail-kicker">Ausgewählte Sehenswürdigkeit</p>
+        <h2>{selectedPoi?.name}</h2>
+        <p>{selectedPoi?.description}</p>
+
+        <div className="poi-meta">
+          <span>Lat: {selectedPoi?.latitude}</span>
+          <span>Lng: {selectedPoi?.longitude}</span>
+          {selectedPoiView?.distanceMeters != null ? (
+            <span>Entfernung: {formatDistanceMeters(selectedPoiView.distanceMeters)}</span>
+          ) : null}
+          {selectedPoiView?.bearingDegrees != null ? (
+            <span>Bearing: {Math.round(selectedPoiView.bearingDegrees)}°</span>
+          ) : null}
+          {selectedPoiView?.elevationAngleDegrees != null ? (
+            <span>Elevation: {selectedPoiView.elevationAngleDegrees.toFixed(1)}°</span>
+          ) : null}
+        </div>
+
+        {geoPosition ? (
+          <p className="geo-readout">
+            Dein Standort: {geoPosition.latitude.toFixed(5)}, {geoPosition.longitude.toFixed(5)}
+          </p>
+        ) : (
+          <p className="geo-readout">Standortdaten werden später für echte Geo-AR genutzt.</p>
+        )}
+
+        <p className="geo-readout">
+          Kompass: {headingState === 'ready' ? `${Math.round(heading)}°` : headingState} · GPS: {geoState}
+        </p>
+      </aside>
 
       <section className="card-grid info-grid">
         <article className="card">

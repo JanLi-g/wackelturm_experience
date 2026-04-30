@@ -597,11 +597,8 @@ h1 {
 }
 
 .poi-detail-panel {
-  position: absolute;
-  right: 16px;
-  bottom: 74px;
-  width: min(340px, calc(100% - 32px));
-  z-index: 3;
+  width: min(1100px, 100%);
+  margin-top: 16px;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -678,8 +675,6 @@ h1 {
   }
 
   .poi-detail-panel {
-    position: static;
-    width: 100%;
     margin-top: 12px;
   }
 
