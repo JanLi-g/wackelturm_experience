@@ -1,16 +1,35 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CameraStage from '../components/CameraStage.js';
 import Ar3DOverlay from '../components/Ar3DOverlay.js';
-import { buildPoiView, formatDistanceMeters, normalizeHeading } from '../lib/geo';
+import {
+  buildPoiView,
+  distanceMeters,
+  formatDistanceMeters,
+  normalizeHeading,
+  normalizeRelativeAngle,
+} from '../lib/geo';
+import {
+  HEADING_SMOOTHING_ALPHA,
+  TOWER_FALLBACK_RADIUS_M,
+  WACKELTURM_COORDS,
+  WACKELTURM_HEIGHT_M,
+} from '../lib/arConfig';
 import pois from '../lib/pois';
 
+function smoothHeading(previous, next, alpha = HEADING_SMOOTHING_ALPHA) {
+  const delta = normalizeRelativeAngle(next - previous);
+  return normalizeHeading(previous + delta * alpha);
+}
+
 export default function ArPage() {
+  const locationWatchRef = useRef(null);
   const [selectedPoiId, setSelectedPoiId] = useState(pois[0]?.id ?? null);
   const [geoState, setGeoState] = useState('idle');
   const [geoPosition, setGeoPosition] = useState(null);
   const [heading, setHeading] = useState(0);
+  const [rawHeading, setRawHeading] = useState(0);
   const [headingState, setHeadingState] = useState('idle');
   const [compassActive, setCompassActive] = useState(false);
 
@@ -20,14 +39,36 @@ export default function ArPage() {
   );
 
   const selectedPoiView = useMemo(
-    () => buildPoiView(selectedPoi ?? pois[0], geoPosition, heading),
+    () =>
+      buildPoiView(selectedPoi ?? pois[0], geoPosition, heading, 0, {
+        towerTopMode: true,
+        towerCoords: WACKELTURM_COORDS,
+        towerHeightM: WACKELTURM_HEIGHT_M,
+        towerFallbackRadiusM: TOWER_FALLBACK_RADIUS_M,
+      }),
     [selectedPoi, geoPosition, heading],
   );
 
   const poiViews = useMemo(
-    () => pois.map((poi, index) => buildPoiView(poi, geoPosition, heading, index)),
+    () =>
+      pois.map((poi, index) =>
+        buildPoiView(poi, geoPosition, heading, index, {
+          towerTopMode: true,
+          towerCoords: WACKELTURM_COORDS,
+          towerHeightM: WACKELTURM_HEIGHT_M,
+          towerFallbackRadiusM: TOWER_FALLBACK_RADIUS_M,
+        }),
+      ),
     [geoPosition, heading],
   );
+
+  const distanceToTower = useMemo(() => {
+    if (!geoPosition) {
+      return null;
+    }
+
+    return distanceMeters(geoPosition, WACKELTURM_COORDS);
+  }, [geoPosition]);
 
   useEffect(() => {
     if (!compassActive || typeof window === 'undefined') {
@@ -36,13 +77,17 @@ export default function ArPage() {
 
     const handleOrientation = (event) => {
       if (typeof event.webkitCompassHeading === 'number') {
-        setHeading(normalizeHeading(event.webkitCompassHeading));
+        const nextHeading = normalizeHeading(event.webkitCompassHeading);
+        setRawHeading(nextHeading);
+        setHeading((previous) => smoothHeading(previous, nextHeading));
         setHeadingState('ready');
         return;
       }
 
       if (typeof event.alpha === 'number') {
-        setHeading(normalizeHeading(360 - event.alpha));
+        const nextHeading = normalizeHeading(360 - event.alpha);
+        setRawHeading(nextHeading);
+        setHeading((previous) => smoothHeading(previous, nextHeading));
         setHeadingState('ready');
       }
     };
@@ -57,25 +102,48 @@ export default function ArPage() {
     };
   }, [compassActive]);
 
+  useEffect(() => {
+    return () => {
+      if (locationWatchRef.current != null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(locationWatchRef.current);
+      }
+    };
+  }, []);
+
   function requestLocation() {
     if (!navigator.geolocation) {
       setGeoState('blocked');
       return;
     }
 
+    if (locationWatchRef.current != null) {
+      navigator.geolocation.clearWatch(locationWatchRef.current);
+      locationWatchRef.current = null;
+    }
+
     setGeoState('loading');
-    navigator.geolocation.getCurrentPosition(
+    locationWatchRef.current = navigator.geolocation.watchPosition(
       (position) => {
         setGeoPosition({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+          altitude: Number.isFinite(position.coords.altitude) ? position.coords.altitude : null,
+          accuracy: position.coords.accuracy,
+          altitudeAccuracy: Number.isFinite(position.coords.altitudeAccuracy)
+            ? position.coords.altitudeAccuracy
+            : null,
+          speed: Number.isFinite(position.coords.speed) ? position.coords.speed : null,
         });
         setGeoState('ready');
       },
       () => {
         setGeoState('blocked');
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 1000,
+      },
     );
   }
 
@@ -133,6 +201,14 @@ export default function ArPage() {
           onSelectPoi={setSelectedPoiId}
         />
 
+        <aside className="ar-debug-panel" aria-label="AR Debug Werte">
+          <p>Tower Distanz: {distanceToTower == null ? '—' : `${Math.round(distanceToTower)} m`}</p>
+          <p>GPS Genauigkeit: {geoPosition?.accuracy ? `±${Math.round(geoPosition.accuracy)} m` : '—'}</p>
+          <p>Altitude: {geoPosition?.altitude == null ? 'n/a' : `${geoPosition.altitude.toFixed(1)} m`}</p>
+          <p>Heading raw/smooth: {Math.round(rawHeading)}° / {Math.round(heading)}°</p>
+          <p>Alt-Quelle: {selectedPoiView?.altitudeSource ?? 'none'}</p>
+        </aside>
+
         <aside className="poi-detail-panel">
           <p className="poi-detail-kicker">Ausgewählte Sehenswürdigkeit</p>
           <h2>{selectedPoi?.name}</h2>
@@ -147,6 +223,9 @@ export default function ArPage() {
             {selectedPoiView?.bearingDegrees != null ? (
               <span>Bearing: {Math.round(selectedPoiView.bearingDegrees)}°</span>
             ) : null}
+            {selectedPoiView?.elevationAngleDegrees != null ? (
+              <span>Elevation: {selectedPoiView.elevationAngleDegrees.toFixed(1)}°</span>
+            ) : null}
           </div>
 
           {geoPosition ? (
@@ -158,7 +237,7 @@ export default function ArPage() {
           )}
 
           <p className="geo-readout">
-            Kompass: {headingState === 'ready' ? `${Math.round(heading)}°` : headingState}
+            Kompass: {headingState === 'ready' ? `${Math.round(heading)}°` : headingState} · GPS: {geoState}
           </p>
         </aside>
       </CameraStage>

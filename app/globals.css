@@ -251,6 +251,7 @@ a {
 
 .ar-page {
   align-content: start;
+  touch-action: pan-x pan-y;
 }
 
 .top-bar {
@@ -361,9 +362,45 @@ h1 {
   min-height: min(72vh, 780px);
   border-radius: 28px;
   overflow: hidden;
+  touch-action: pan-x pan-y;
   border: 1px solid var(--border);
   background: radial-gradient(circle at top, #1d3b74, #0c1b33 70%);
   box-shadow: 0 28px 80px rgba(19, 34, 56, 0.16);
+}
+
+.camera-zoom-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  touch-action: none;
+}
+
+.camera-zoom-layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.camera-zoom-controls {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 8px;
+  z-index: 4;
+}
+
+.camera-zoom-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .camera-video {
@@ -572,6 +609,29 @@ h1 {
   box-shadow: 0 18px 50px rgba(19, 34, 56, 0.16);
 }
 
+.ar-debug-panel {
+  position: absolute;
+  left: 16px;
+  bottom: 74px;
+  width: min(320px, calc(100% - 32px));
+  z-index: 3;
+  background: rgba(9, 17, 34, 0.78);
+  color: white;
+  border-radius: 16px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  backdrop-filter: blur(6px);
+}
+
+.ar-debug-panel p {
+  margin: 0;
+}
+
+.ar-debug-panel p + p {
+  margin-top: 5px;
+}
+
 .poi-detail-kicker {
   margin: 0 0 8px;
   color: var(--accent);
@@ -618,6 +678,12 @@ h1 {
   }
 
   .poi-detail-panel {
+    position: static;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .ar-debug-panel {
     position: static;
     width: 100%;
     margin-top: 12px;

@@ -7,8 +7,8 @@ function clamp(v, a, b) {
 }
 
 export default function Ar3DOverlay({ poiViews, selectedPoiId, onSelectPoi }) {
-  // Simple collision-avoidance: when markers are too close on screen, stack them
-  // upward in small offsets so labels remain readable.
+  // Collision-avoidance: keep a minimum marker distance and spread collisions
+  // sideways first, then slightly vertically.
   const rendered = useMemo(() => {
     if (!poiViews || poiViews.length === 0) return [];
 
@@ -16,6 +16,7 @@ export default function Ar3DOverlay({ poiViews, selectedPoiId, onSelectPoi }) {
     const copy = [...poiViews].sort((a, b) => b.zIndex - a.zIndex);
     const placed = [];
     const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 420;
 
     return copy.map((poi) => {
       let left = poi.left;
@@ -23,19 +24,19 @@ export default function Ar3DOverlay({ poiViews, selectedPoiId, onSelectPoi }) {
       const markerPx = poi.baseMarkerPx || 48;
       const percentYPerMarker = (markerPx / vh) * 100;
 
-      // Count how many nearby markers already placed and offset accordingly
-      let overlapCount = 0;
-      for (const p of placed) {
-        const dx = Math.abs(p.left - left);
-        const dy = Math.abs(p.top - top);
-        if (dx < 6 && dy < 6) {
-          overlapCount += 1;
-        }
-      }
+      const minXGap = Math.max((markerPx / vw) * 100 * 0.85, 4.2);
+      const minYGap = Math.max(percentYPerMarker * 0.95, 4.6);
 
-      if (overlapCount > 0) {
-        // move upward for each overlap to avoid exact stacking
-        top = clamp(top - overlapCount * (percentYPerMarker + 2), 4, 96);
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const conflict = placed.find((p) => Math.abs(p.left - left) < minXGap && Math.abs(p.top - top) < minYGap);
+        if (!conflict) {
+          break;
+        }
+
+        const direction = attempt % 2 === 0 ? 1 : -1;
+        const spreadMultiplier = 1 + Math.floor(attempt / 2);
+        left = clamp(conflict.left + direction * spreadMultiplier * (minXGap * 0.72), 4, 96);
+        top = clamp(top - spreadMultiplier * (minYGap * 0.34), 4, 96);
       }
 
       placed.push({ left, top });

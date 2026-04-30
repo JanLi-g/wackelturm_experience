@@ -59,7 +59,14 @@ export function formatDistanceMeters(value) {
   return `${Math.round(value)} m`;
 }
 
-export function buildPoiView(poi, userPosition, heading = 0, index = 0) {
+export function buildPoiView(poi, userPosition, heading = 0, index = 0, options = {}) {
+  const {
+    towerTopMode = false,
+    towerCoords = null,
+    towerHeightM = 20,
+    towerFallbackRadiusM = 120,
+  } = options;
+
   if (!userPosition) {
     return {
       ...poi,
@@ -70,6 +77,8 @@ export function buildPoiView(poi, userPosition, heading = 0, index = 0) {
       distanceMeters: null,
       bearingDegrees: null,
       relativeAngleDegrees: null,
+      elevationAngleDegrees: null,
+      altitudeSource: 'none',
       mode: 'fallback',
       distanceLabel: 'Testposition',
       markerRank: index,
@@ -82,9 +91,36 @@ export function buildPoiView(poi, userPosition, heading = 0, index = 0) {
   // heading - bearing so right turns map to rightward marker movement.
   const relativeAngle = normalizeRelativeAngle(heading - bearing);
 
+  let userAltitude =
+    typeof userPosition.altitude === 'number' && Number.isFinite(userPosition.altitude)
+      ? userPosition.altitude
+      : null;
+  let altitudeSource = userAltitude == null ? 'none' : 'sensor';
+
+  const distanceToTower =
+    towerCoords && typeof towerCoords.latitude === 'number' && typeof towerCoords.longitude === 'number'
+      ? distanceMeters(userPosition, towerCoords)
+      : Infinity;
+
+  if (towerTopMode && distanceToTower <= towerFallbackRadiusM) {
+    userAltitude = towerHeightM;
+    altitudeSource = 'tower-top-mode';
+  }
+
+  const poiAltitudeDefined = typeof poi.altitude === 'number' && Number.isFinite(poi.altitude);
+  const canUseElevation = poiAltitudeDefined || altitudeSource === 'tower-top-mode';
+  const poiAltitude = poiAltitudeDefined ? poi.altitude : 0;
+  const elevationAngle =
+    canUseElevation && userAltitude != null
+      ? toDegrees(Math.atan2(poiAltitude - userAltitude, Math.max(distance, 1)))
+      : null;
+
   const left = clamp(50 + (relativeAngle / 120) * 40, 8, 92);
   const distanceFactor = clamp(distance / 4000, 0, 1);
-  const top = clamp(62 - distanceFactor * 28 + Math.abs(relativeAngle) / 24, 18, 78);
+  const baselineTop = clamp(62 - distanceFactor * 28 + Math.abs(relativeAngle) / 24, 16, 84);
+  const topFromElevation =
+    elevationAngle == null ? baselineTop : clamp(52 - elevationAngle * 1.7 + Math.abs(relativeAngle) / 28, 12, 88);
+  const top = clamp(baselineTop * 0.45 + topFromElevation * 0.55, 12, 88);
   const opacity = clamp(1 - distance / 12000, 0.45, 1);
   // Increase base scale so POIs are legible from a tower viewpoint.
   const scale = clamp(1.6 - distance / 6000, 0.9, 1.8);
@@ -110,6 +146,8 @@ export function buildPoiView(poi, userPosition, heading = 0, index = 0) {
     distanceMeters: distance,
     bearingDegrees: bearing,
     relativeAngleDegrees: relativeAngle,
+    elevationAngleDegrees: elevationAngle,
+    altitudeSource,
     mode: 'geo',
     distanceLabel: formatDistanceMeters(distance),
     markerRank: index,
